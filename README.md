@@ -1,27 +1,30 @@
-Xandeum pNode Analytics Dashboard
+:
 
-A full-stack dashboard for monitoring Xandeum pNodes, showing live network state, historical snapshots, endpoint health, and persistence via MongoDB. Built with Node.js, Express, Next.js, TypeScript, and Tailwind CSS.
+🚀 Xandeum pNode Analytics Dashboard
 
-Features
+A full-stack dashboard for monitoring Xandeum pNodes, showing live network state, historical snapshots, endpoint health, and persistence via MongoDB.
+Built with Node.js, Express, Next.js, TypeScript, and Tailwind CSS.
 
-Fetch live pNode data from public pRPC endpoints
+✨ Features
 
-Persist historical pNode snapshots in MongoDB
+🌐 Fetch live pNode data from public pRPC endpoints
 
-Endpoint health scoring (success rate + latency)
+🗄️ Persist historical pNode snapshots in MongoDB
 
-Live + historical pNode tables with consistent dark mode styling
+📊 Endpoint health scoring (success rate + latency)
 
-Historical line chart visualization using Recharts
+📋 Live + historical pNode tables with consistent dark mode styling
 
-Auto-refresh live data every 15 seconds
+📈 Historical line chart visualization using Recharts
 
-Fallback to mock data if all endpoints fail
+⏱️ Auto-refresh live data every 15 seconds
 
-Full dark mode support
+⚠️ Fallback to mock data if all endpoints fail
 
-Getting Started
-Prerequisites
+🌑 Full dark mode support
+
+🛠️ Getting Started
+📋 Prerequisites
 
 Node.js >= 18
 
@@ -29,11 +32,11 @@ npm >= 9
 
 MongoDB (Atlas or local instance)
 
-Quick Start (One-Liner)
+⚡ Quick Start (One-Liner)
 
 Spin up both backend and frontend for demos or local testing:
 
-# From the project root
+# From project root
 npm install
 concurrently "cd backend && npm run dev" "cd frontend && npm run dev"
 
@@ -42,10 +45,10 @@ Backend: http://localhost:4000
 
 Frontend: http://localhost:3000
 
-⚠️ Ensure MONGO_URI is correctly set in backend/.env.
+⚠️ Make sure your MongoDB URI is correctly set in backend/.env.
 🔹 Live pNode data will be fetched from public pRPC endpoints; fallback mock data is used if endpoints fail.
 
-Environment Variables
+🗂️ Environment Variables
 
 Create a .env file in backend/:
 
@@ -59,7 +62,7 @@ PORT is optional; defaults to 4000
 
 Optionally create .env.example for public sharing
 
-Backend
+🏗️ Backend
 
 Location: backend/
 Stack: Node.js + Express + TypeScript
@@ -76,7 +79,7 @@ cd backend
 npm install
 npm run dev
 
-Frontend
+💻 Frontend
 
 Location: frontend/
 Stack: Next.js + TypeScript + Tailwind CSS
@@ -95,19 +98,21 @@ cd frontend
 npm install
 npm run dev
 
-Database
+🗄️ Database
 
 MongoDB stores historical pNode snapshots and endpoint health metrics.
 
 Collections:
 
-pnodes → Stores fetched pNode snapshots with timestamps
+pnodes → Stores fetched pNode snapshots with timestamp
 
 endpointHealth → Stores historical endpoint health metrics
 
-Usage
+Ensure MONGO_URI is correct.
 
-Open frontend at http://localhost:3000
+🚀 Usage
+
+Open the frontend at: http://localhost:3000
 
 Live pNodes auto-refresh every 15 seconds
 
@@ -115,16 +120,14 @@ Historical snapshots display in table + line chart
 
 Endpoint health scoring visible in backend logs and MongoDB
 
-Optional Enhancements
+⚡ Optional Enhancements
 
-Dark / Light Theme Toggle
-
-Historical Filtering by status (online/offline) with pagination
+Historical Filtering by status (online/offline) and pagination cursor
 
 Endpoint Availability Awareness with automatic mock fallback
 
 Pagination for efficient browsing of historical data
 
-License
+📄 License
 
 MIT © Kehinde Alao
