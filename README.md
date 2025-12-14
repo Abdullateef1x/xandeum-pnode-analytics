@@ -10,13 +10,13 @@ Persist historical pNode snapshots in MongoDB
 
 Endpoint health scoring (success rate + latency)
 
-Live + historical pNode tables with dark mode styling
+Live + historical pNode tables with consistent dark mode styling
 
 Historical line chart visualization using Recharts
 
 Auto-refresh live data every 15 seconds
 
-Fallback to mock data if endpoints fail
+Fallback to mock data if all endpoints fail
 
 Full dark mode support
 
@@ -29,20 +29,21 @@ npm >= 9
 
 MongoDB (Atlas or local instance)
 
-Quick Start
+Quick Start (One-Liner)
 
-Spin up both backend and frontend with a single command:
+Spin up both backend and frontend for demos or local testing:
 
-# From project root
+# From the project root
 npm install
 concurrently "cd backend && npm run dev" "cd frontend && npm run dev"
 
 
-Backend runs on http://localhost:4000
+Backend: http://localhost:4000
 
-Frontend runs on http://localhost:3000
+Frontend: http://localhost:3000
 
-Ensure MONGO_URI is set correctly in backend/.env
+⚠️ Ensure MONGO_URI is correctly set in backend/.env.
+🔹 Live pNode data will be fetched from public pRPC endpoints; fallback mock data is used if endpoints fail.
 
 Environment Variables
 
@@ -52,7 +53,7 @@ MONGO_URI=mongodb+srv://<username>:<password>@<cluster>.mongodb.net/?appName=<ap
 PORT=4000
 
 
-Replace <username>, <password>, <cluster>, <appName> with your MongoDB credentials
+Replace <username>, <password>, <cluster>, and <appName> with your MongoDB Atlas credentials
 
 PORT is optional; defaults to 4000
 
@@ -86,7 +87,7 @@ Component	Description
 PNodeTable	Displays live or historical pNodes in a table
 PNodeHistoryChart	Line chart visualization of historical snapshots
 LivePNodes	Client-side polling for live pNodes
-HistoricalPNodesClient	Paginated and filtered historical pNodes
+HistoricalPNodesClient	Paginated + filtered historical pNodes
 
 Development:
 
@@ -106,7 +107,7 @@ endpointHealth → Stores historical endpoint health metrics
 
 Usage
 
-Open the frontend at http://localhost:3000
+Open frontend at http://localhost:3000
 
 Live pNodes auto-refresh every 15 seconds
 
@@ -116,7 +117,7 @@ Endpoint health scoring visible in backend logs and MongoDB
 
 Optional Enhancements
 
-Dark / Light Theme Toggle for readability
+Dark / Light Theme Toggle
 
 Historical Filtering by status (online/offline) with pagination
 
