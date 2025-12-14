@@ -24,6 +24,8 @@ app.get("/health", (_, res) => {
 
 const PORT = process.env.PORT || 4000;
 
-app.listen(4000, () => {
-  console.log(`Backend running on http://localhost:${PORT}`);
+app.listen(PORT, () => {
+  if (process.env.NODE_ENV !== "production") {
+    console.log(`Backend running on http://localhost:${PORT}`);
+  }
 });

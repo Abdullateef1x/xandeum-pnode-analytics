@@ -12,6 +12,21 @@ export interface EndpointHealth {
 // Map to track live endpoint health stats
 const healthMap = new Map<string, EndpointHealth>();
 
+
+// Public pRPC endpoints
+const PRPC_URLS = [
+  "http://173.212.203.145:6000/rpc",
+  "http://173.212.220.65:6000/rpc",
+  "http://161.97.97.41:6000/rpc",
+  "http://192.190.136.36:6000/rpc",
+  "http://192.190.136.37:6000/rpc",
+  "http://192.190.136.38:6000/rpc",
+  "http://192.190.136.28:6000/rpc",
+  "http://192.190.136.29:6000/rpc",
+  "http://207.244.255.1:6000/rpc",
+];
+
+
 /**
  * Initialize endpoint in the health map if it doesn't exist.
  */
@@ -25,6 +40,17 @@ export function initEndpoint(url: string) {
     });
   }
 }
+
+/**
+ * Auto-initialize all endpoints from a list.
+ */
+export function initEndpoints(urls: string[]) {
+  urls.forEach(initEndpoint);
+}
+
+  // Initialize endpoints
+  initEndpoints(PRPC_URLS);
+
 
 /**
  * Record a successful request to the endpoint.
@@ -98,6 +124,8 @@ export async function persistHealthSnapshot() {
       }))
     );
   } catch (err) {
-    console.warn("[WARN] Failed to persist health snapshot");
+if (process.env.NODE_ENV !== "production") {
+      console.warn("[WARN] Failed to persist health snapshot", err);
+    }
   }
 }

@@ -19,7 +19,9 @@ export default function LivePNodes({
       const data = await fetchLivePNodes();
       setPNodes(data);
     } catch (err) {
-      console.error("Failed to fetch live pNodes", err);
+      if (process.env.NODE_ENV !== "production") {
+        console.error("Failed to fetch live pNodes", err);
+      }
     } finally {
       setLoading(false);
     }

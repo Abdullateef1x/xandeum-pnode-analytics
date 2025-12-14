@@ -34,7 +34,11 @@ router.get("/pnodes/history", async (req, res) => {
       nextCursor,
     });
   } catch (err) {
-    console.error("[ERROR] Failed to fetch history:", err);
+
+    if (process.env.NODE_ENV !== "production") {
+      console.error("[ERROR] Failed to fetch history:", err);
+    }
+
     res.status(500).json({ error: "Failed to fetch history" });
   }
 

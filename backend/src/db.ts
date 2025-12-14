@@ -5,7 +5,6 @@ dotenv.config();
 
 
 const MONGO_URI = process.env.MONGO_URI;
-console.log("MONGO_URI:", MONGO_URI);
 
 export async function connectDB() {
   if (!MONGO_URI) {
@@ -13,7 +12,14 @@ export async function connectDB() {
   }
   try {
     await mongoose.connect(MONGO_URI);
+    if (process.env.NODE_ENV !== "production") {
+      console.log("[INFO] MongoDB connected");
+    }
+
   } catch (err) {
-    console.error("[ERROR] MongoDB connection failed:", err);
+    if (process.env.NODE_ENV !== "production") {
+      console.error("[ERROR] MongoDB connection failed:", err);
+    }
+    process.exit(1);
   }
 }
