@@ -86,6 +86,9 @@ export async function fetchPNodeList(): Promise<GossipNode[]> {
           );
         }
 
+        await persistHealthSnapshot();
+
+
         // Return the first live endpoint
         return pnodes;
       } catch (err) {
