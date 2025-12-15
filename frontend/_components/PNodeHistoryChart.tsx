@@ -13,71 +13,72 @@ import {
 import { PNode } from "@/_lib/api";
 
 interface Props {
-  pnodes: PNode[]; // historical snapshots passed from server
+  pnodes: PNode[]; // historical snapshots
 }
 
 type ChartPoint = {
-  timestamp: number; // unix ms
+  timestamp: number;
   count: number;
 };
 
 export default function PNodeHistoryChart({ pnodes }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const [containerHeight, setContainerHeight] = useState(300); // fallback
+  const [data, setData] = useState<ChartPoint[]>([]);
+  const [hasOffline, setHasOffline] = useState(false);
+  const [containerHeight, setContainerHeight] = useState(300);
 
-  // Measure container height to avoid width/height -1 warning
   useEffect(() => {
-    if (containerRef.current) {
-      const height = containerRef.current.clientHeight;
-      if (height > 0) setContainerHeight(height);
-    }
-  }, []);
+    if (!pnodes || !pnodes.length) return;
 
-  // Aggregate pNodes per minute
-  let aggregated: Record<number, ChartPoint> = {};
-  let hasOffline = false;
+    const aggregated: Record<number, ChartPoint> = {};
+    let offlineFlag = false;
 
-  pnodes.forEach((node) => {
-    if (!node.fetchedAt) return;
+    pnodes.forEach((n) => {
+      if (!n.fetchedAt) return;
 
-    const ts = new Date(node.fetchedAt).getTime();
-    const date = new Date(ts);
-    const bucketTime = new Date(
-      date.getFullYear(),
-      date.getMonth(),
-      date.getDate(),
-      date.getHours(),
-      date.getMinutes()
-    ).getTime();
+      const ts = new Date(n.fetchedAt).getTime();
+      const date = new Date(ts);
+      const bucketTime = new Date(
+        date.getFullYear(),
+        date.getMonth(),
+        date.getDate(),
+        date.getHours(),
+        date.getMinutes()
+      ).getTime();
 
-    aggregated[bucketTime] ??= { timestamp: bucketTime, count: 0 };
-    aggregated[bucketTime].count += 1;
+      aggregated[bucketTime] ??= { timestamp: bucketTime, count: 0 };
+      aggregated[bucketTime].count += 1;
 
-    if (node.status === "offline") hasOffline = true;
-  });
+      if (n.status === "offline") offlineFlag = true;
+    });
 
-  // Convert to sorted array
-  let data: ChartPoint[] = Object.values(aggregated).sort(
-    (a, b) => a.timestamp - b.timestamp
-  );
+    // Sort
+    let chartData: ChartPoint[] = Object.values(aggregated).sort(
+      (a, b) => a.timestamp - b.timestamp
+    );
 
-  // Auto-fill missing minutes for smooth wavy line
-  if (data.length > 1) {
-    const filled: ChartPoint[] = [];
-    let lastCount = data[0].count;
-    let current = data[0].timestamp;
-    const end = data[data.length - 1].timestamp;
+    // Auto-fill missing minutes
+    if (chartData.length > 1) {
+      const filled: ChartPoint[] = [];
+      let lastCount = chartData[0].count;
+      let current = chartData[0].timestamp;
+      const end = chartData[chartData.length - 1].timestamp;
 
-    while (current <= end) {
-      if (aggregated[current]) {
-        lastCount = aggregated[current].count;
+      while (current <= end) {
+        if (aggregated[current]) lastCount = aggregated[current].count;
+        filled.push({ timestamp: current, count: lastCount });
+        current += 60_000;
       }
-      filled.push({ timestamp: current, count: lastCount });
-      current += 60_000; // next minute
+      chartData = filled;
     }
 
-    data = filled;
-  }
+    setData(chartData);
+    setHasOffline(offlineFlag);
+  }, [pnodes]);
+
+  useEffect(() => {
+    if (containerRef.current) setContainerHeight(containerRef.current.clientHeight);
+  }, []);
 
   if (!data.length) {
     return (
@@ -111,10 +112,7 @@ export default function PNodeHistoryChart({ pnodes }: Props) {
                 scale="time"
                 domain={["dataMin", "dataMax"]}
                 tickFormatter={(ts) =>
-                  new Date(ts).toLocaleTimeString([], {
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  })
+                  new Date(ts).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
                 }
                 stroke="#6b7280"
               />

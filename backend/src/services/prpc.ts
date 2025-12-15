@@ -16,6 +16,7 @@ export interface GossipNode {
   lastSeen?: number;
 }
 
+// Fallback mock data
 const MOCK_PNODES: GossipNode[] = [
   { id: "mock1", type: "pNode", address: "0x123", status: "offline" },
   { id: "mock2", type: "pNode", address: "0x456", status: "offline" },
@@ -24,7 +25,8 @@ const MOCK_PNODES: GossipNode[] = [
 const MAX_RETRIES = 3;
 
 /**
- * Core fetch logic
+ * Fetch pNodes from endpoints
+ * @param saveToDb whether to persist snapshot
  */
 export async function fetchPNodeList(saveToDb = true): Promise<GossipNode[]> {
   const endpoints = getSortedHealthyEndpoints();
@@ -32,8 +34,8 @@ export async function fetchPNodeList(saveToDb = true): Promise<GossipNode[]> {
 
   const fetchFromEndpoint = async (url: string): Promise<GossipNode[] | null> => {
     for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
-      const start = Date.now();
       try {
+        const start = Date.now();
         const response = await axios.post(
           url,
           { jsonrpc: "2.0", id: 1, method: "get-pods", params: [] },
@@ -57,60 +59,71 @@ export async function fetchPNodeList(saveToDb = true): Promise<GossipNode[]> {
           lastSeen: pod.last_seen_timestamp,
         }));
 
-        // Persist **snapshot** of this tick
-        if (saveToDb) {
+        if (saveToDb && !firstSuccessfulPNodes) {
+          firstSuccessfulPNodes = pnodes;
           await PNodeModel.insertMany(
-            pnodes.map((p) => ({
-              ...p,
-              fetchedAt: new Date(), // unique timestamp for this cron tick
-            }))
+            pnodes.map((p) => ({ ...p, fetchedAt: new Date() }))
           );
         }
-
-        // Only return for first live endpoint
-        if (!firstSuccessfulPNodes) firstSuccessfulPNodes = pnodes;
 
         return pnodes;
       } catch (err) {
         recordFailure(url);
         if (process.env.NODE_ENV !== "production") {
-          const msg = err instanceof Error ? err.message : "";
-          console.warn(`[WARN] ${url} failed on attempt ${attempt}: ${msg}`);
+          console.warn(`[WARN] ${url} failed on attempt ${attempt}:`, err);
         }
       }
     }
     return null;
   };
 
+  // Run all endpoints in parallel
   const fetchPromises = endpoints.map((url) => fetchFromEndpoint(url));
-
-  // Return first successful immediately
   const firstResult = await Promise.race(fetchPromises);
 
-  // Let background fetches continue
+  // Continue other fetches in background
   Promise.all(fetchPromises).then(() => persistHealthSnapshot()).catch(console.error);
 
   if (firstResult) return firstResult;
 
-  // Fallback
   if (saveToDb) {
-    await PNodeModel.insertMany(MOCK_PNODES.map((p) => ({ ...p, fetchedAt: new Date() })));
+    await PNodeModel.insertMany(
+      MOCK_PNODES.map((p) => ({ ...p, fetchedAt: new Date() }))
+    );
   }
 
-  return MOCK_PNODES;
+  return firstResult || MOCK_PNODES;
 }
 
 /**
- * Cron job: fetch and save snapshot every minute
+ * Cron job to snapshot pNodes every minute
  */
 export function startPNodeCron() {
   cron.schedule("* * * * *", async () => {
-    console.log("[CRON] Fetching live pNodes...");
+    console.log("[CRON] Fetching pNodes...");
     try {
       await fetchPNodeList(true);
       console.log("[CRON] Snapshot saved.");
     } catch (err) {
-      console.error("[CRON] Failed to fetch pNodes:", err);
+      console.error("[CRON] Error fetching pNodes:", err);
     }
   });
+}
+
+/**
+ * For first run only: generate fake historical snapshots
+ * to ensure chart shows a wavy line immediately
+ */
+export async function seedInitialSnapshots() {
+  const existing = await PNodeModel.countDocuments();
+  if (existing > 0) return;
+
+  console.log("[SEED] Generating initial snapshots...");
+  const now = Date.now();
+  for (let i = 10; i >= 0; i--) {
+    const ts = new Date(now - i * 60_000); // 1-min interval
+    await PNodeModel.insertMany(
+      MOCK_PNODES.map((p) => ({ ...p, fetchedAt: ts }))
+    );
+  }
 }
