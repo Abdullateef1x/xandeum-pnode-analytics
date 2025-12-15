@@ -2,7 +2,6 @@ import axios from "axios";
 import { PNodeModel } from "../models/PNode";
 import {
   getSortedHealthyEndpoints,
-  initEndpoints,
   recordFailure,
   recordSuccess,
 } from "./endpointHealth";
@@ -16,44 +15,25 @@ interface GossipNode {
   lastSeen?: number;
 }
 
-// Mock fallback if all endpoints fail
 const MOCK_PNODES: GossipNode[] = [
   { id: "mock1", type: "pNode", address: "0x123", status: "offline" },
   { id: "mock2", type: "pNode", address: "0x456", status: "offline" },
 ];
 
-// Maximum retry attempts per endpoint
 const MAX_RETRIES = 3;
 
-/**
- * Fetch live pNodes from public endpoints.
- * Retries failing endpoints up to MAX_RETRIES times.
- */
 export async function fetchPNodeList(): Promise<GossipNode[]> {
-
-  // Sort endpoints by health score
   const endpoints = getSortedHealthyEndpoints();
+  let firstSuccessfulPNodes: GossipNode[] | null = null;
 
-  for (const url of endpoints) {
-    let attempt = 0;
-
-    while (attempt < MAX_RETRIES) {
-      attempt++;
+  // Helper to attempt fetching from one endpoint
+  const fetchFromEndpoint = async (url: string): Promise<GossipNode[] | null> => {
+    for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
       const start = Date.now();
-
       try {
-        if (process.env.NODE_ENV !== "production") {
-          console.log(`[INFO] Trying endpoint: ${url} (attempt ${attempt})`);
-        }
-
         const response = await axios.post(
           url,
-          {
-            jsonrpc: "2.0",
-            id: 1,
-            method: "get-pods",
-            params: [],
-          },
+          { jsonrpc: "2.0", id: 1, method: "get-pods", params: [] },
           { timeout: 5000 }
         );
 
@@ -61,10 +41,9 @@ export async function fetchPNodeList(): Promise<GossipNode[]> {
         recordSuccess(url, latency);
 
         const pods = response.data?.result?.pods;
-
         if (!pods?.length) {
-          recordFailure(url); // empty response treated as failure
-          continue; // retry same endpoint
+          recordFailure(url);
+          continue;
         }
 
         const pnodes: GossipNode[] = pods.map((pod: any) => ({
@@ -75,42 +54,46 @@ export async function fetchPNodeList(): Promise<GossipNode[]> {
           lastSeen: pod.last_seen_timestamp,
         }));
 
-        // Persist pNodes
-        await PNodeModel.insertMany(
-          pnodes.map((p) => ({ ...p, fetchedAt: new Date() }))
-        );
-
-        if (process.env.NODE_ENV !== "production") {
-          console.log(
-            `[INFO] Served from ${url} | latency=${latency}ms | nodes=${pnodes.length}`
+        // Persist only for the first successful endpoint
+        if (!firstSuccessfulPNodes) {
+          firstSuccessfulPNodes = pnodes;
+          await PNodeModel.insertMany(
+            pnodes.map((p) => ({ ...p, fetchedAt: new Date() }))
           );
         }
 
-        await persistHealthSnapshot();
-
-
-        // Return the first live endpoint
         return pnodes;
       } catch (err) {
         recordFailure(url);
-
         if (process.env.NODE_ENV !== "production") {
           const msg = err instanceof Error ? err.message : "";
           console.warn(`[WARN] ${url} failed on attempt ${attempt}: ${msg}`);
         }
       }
     }
-  }
+    return null;
+  };
 
-  // If no endpoint succeeded, fallback to mock
+  // Start all fetches in parallel
+  const fetchPromises = endpoints.map((url) => fetchFromEndpoint(url));
+
+  // Return the first successful endpoint immediately
+  const firstResult = await Promise.race(fetchPromises);
+
+  // Let all other endpoints continue in the background
+  Promise.all(fetchPromises).then(() => persistHealthSnapshot()).catch(console.error);
+
+  // If we got a first successful result, return it
+  if (firstResult) return firstResult;
+
+  // Fallback to mock if none succeeded
   if (process.env.NODE_ENV !== "production") {
-    console.warn("[WARN] All endpoints failed after retries. Using mock data.");
+    console.warn("[WARN] All endpoints failed. Returning mock data.");
   }
 
   await PNodeModel.insertMany(
     MOCK_PNODES.map((p) => ({ ...p, fetchedAt: new Date() }))
   );
 
-  persistHealthSnapshot(); // fire-and-forget
   return MOCK_PNODES;
 }
