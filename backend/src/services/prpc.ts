@@ -24,8 +24,7 @@ const MOCK_PNODES: GossipNode[] = [
 const MAX_RETRIES = 3;
 
 /**
- * Core function: fetch pNodes from endpoints
- * @param saveToDb whether to persist first successful result to MongoDB
+ * Core fetch logic
  */
 export async function fetchPNodeList(saveToDb = true): Promise<GossipNode[]> {
   const endpoints = getSortedHealthyEndpoints();
@@ -58,13 +57,18 @@ export async function fetchPNodeList(saveToDb = true): Promise<GossipNode[]> {
           lastSeen: pod.last_seen_timestamp,
         }));
 
-        // Persist only for the first successful endpoint
-        if (saveToDb && !firstSuccessfulPNodes) {
-          firstSuccessfulPNodes = pnodes;
+        // Persist **snapshot** of this tick
+        if (saveToDb) {
           await PNodeModel.insertMany(
-            pnodes.map((p) => ({ ...p, fetchedAt: new Date() }))
+            pnodes.map((p) => ({
+              ...p,
+              fetchedAt: new Date(), // unique timestamp for this cron tick
+            }))
           );
         }
+
+        // Only return for first live endpoint
+        if (!firstSuccessfulPNodes) firstSuccessfulPNodes = pnodes;
 
         return pnodes;
       } catch (err) {
@@ -78,22 +82,17 @@ export async function fetchPNodeList(saveToDb = true): Promise<GossipNode[]> {
     return null;
   };
 
-  // Launch all endpoints in parallel
   const fetchPromises = endpoints.map((url) => fetchFromEndpoint(url));
 
-  // Return first successful result immediately for UI
+  // Return first successful immediately
   const firstResult = await Promise.race(fetchPromises);
 
-  // Continue updating health and background fetches
+  // Let background fetches continue
   Promise.all(fetchPromises).then(() => persistHealthSnapshot()).catch(console.error);
 
   if (firstResult) return firstResult;
 
-  // Fallback to mock if none succeeded
-  if (process.env.NODE_ENV !== "production") {
-    console.warn("[WARN] All endpoints failed. Returning mock data.");
-  }
-
+  // Fallback
   if (saveToDb) {
     await PNodeModel.insertMany(MOCK_PNODES.map((p) => ({ ...p, fetchedAt: new Date() })));
   }
@@ -102,17 +101,16 @@ export async function fetchPNodeList(saveToDb = true): Promise<GossipNode[]> {
 }
 
 /**
- * Cron job: fetch and save pNodes every minute
- * This is completely independent of the frontend
+ * Cron job: fetch and save snapshot every minute
  */
 export function startPNodeCron() {
   cron.schedule("* * * * *", async () => {
-    console.log("[CRON] Running fetchPNodeList...");
+    console.log("[CRON] Fetching live pNodes...");
     try {
-      await fetchPNodeList(true); // save snapshot
-      console.log("[CRON] Done fetching pNodes.");
+      await fetchPNodeList(true);
+      console.log("[CRON] Snapshot saved.");
     } catch (err) {
-      console.error("[CRON] Error fetching pNodes:", err);
+      console.error("[CRON] Failed to fetch pNodes:", err);
     }
   });
 }
