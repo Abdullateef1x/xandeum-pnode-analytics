@@ -15,26 +15,39 @@ interface Props {
   pnodes: PNode[];
 }
 
+type ChartPoint = {
+  timestamp: number; // unix ms
+  count: number;
+};
+
 export default function PNodeHistoryChart({ pnodes }: Props) {
-  // Transform historical pNodes into [{ time, count }]
-  const data = Object.values(
-    pnodes.reduce<Record<string, { time: string; count: number }>>(
-      (acc, node) => {
-        if (!node.fetchedAt) return acc;
+  /**
+   * Aggregate pNodes per minute
+   */
+  const data: ChartPoint[] = Object.values(
+    pnodes.reduce<Record<number, ChartPoint>>((acc, node) => {
+      if (!node.fetchedAt) return acc;
 
-        const time = new Date(node.fetchedAt).toLocaleTimeString();
-        acc[time] = acc[time] || { time, count: 0 };
-        acc[time].count += 1;
+      const date = new Date(node.fetchedAt);
 
-        return acc;
-      },
-      {}
-    )
-  );
+      // Bucket by minute (YYYY-MM-DD HH:MM)
+      const bucketTime = new Date(
+        date.getFullYear(),
+        date.getMonth(),
+        date.getDate(),
+        date.getHours(),
+        date.getMinutes()
+      ).getTime();
 
-  // Detect if there are any offline nodes to color the line
+      acc[bucketTime] ??= { timestamp: bucketTime, count: 0 };
+      acc[bucketTime].count += 1;
+
+      return acc;
+    }, {})
+  ).sort((a, b) => a.timestamp - b.timestamp);
+
   const hasOffline = pnodes.some((n) => n.status === "offline");
-  const lineColor = hasOffline ? "#ef4444" : "#3b82f6"; // red if offline, blue otherwise
+  const lineColor = hasOffline ? "#ef4444" : "#3b82f6";
 
   if (!data.length) {
     return (
@@ -52,17 +65,37 @@ export default function PNodeHistoryChart({ pnodes }: Props) {
         pNode Count Over Time
       </h2>
 
-      {/* Chart container with white background for readability */}
-      <div className="w-full h-64 min-h-[16rem] bg-white rounded p-2 shadow-inner">
+      {/* Fixed height = zero warnings, always */}
+      <div className="w-full h-64 bg-white rounded p-2 shadow-inner">
         <ResponsiveContainer width="100%" height="100%">
-          <LineChart data={data} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
-            {/* Grid */}
+          <LineChart data={data} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
             <CartesianGrid stroke="#e5e7eb" strokeDasharray="3 3" />
-            {/* Axes */}
-            <XAxis dataKey="time" stroke="#6b7280" tick={{ fill: "#6b7280" }} />
-            <YAxis allowDecimals={false} stroke="#6b7280" tick={{ fill: "#6b7280" }} />
-            {/* Tooltip */}
+
+            {/* Time-based X-axis */}
+            <XAxis
+              dataKey="timestamp"
+              type="number"
+              scale="time"
+              domain={["dataMin", "dataMax"]}
+              tickFormatter={(ts) =>
+                new Date(ts).toLocaleTimeString([], {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })
+              }
+              stroke="#6b7280"
+            />
+
+            <YAxis
+              allowDecimals={false}
+              stroke="#6b7280"
+              tick={{ fill: "#6b7280" }}
+            />
+
             <Tooltip
+              labelFormatter={(ts) =>
+                new Date(ts as number).toLocaleString()
+              }
               contentStyle={{
                 backgroundColor: "#f9fafb",
                 border: "1px solid #d1d5db",
@@ -70,7 +103,7 @@ export default function PNodeHistoryChart({ pnodes }: Props) {
                 color: "#111827",
               }}
             />
-            {/* Line */}
+
             <Line
               type="monotone"
               dataKey="count"
