@@ -12,7 +12,7 @@ import {
 import { PNode } from "@/_lib/api";
 
 interface Props {
-  pnodes: PNode[];
+  pnodes: PNode[]; // historical snapshots
 }
 
 type ChartPoint = {
@@ -21,16 +21,15 @@ type ChartPoint = {
 };
 
 export default function PNodeHistoryChart({ pnodes }: Props) {
-  /**
-   * Aggregate pNodes per minute
-   */
-  const data: ChartPoint[] = Object.values(
-    pnodes.reduce<Record<number, ChartPoint>>((acc, node) => {
-      if (!node.fetchedAt) return acc;
-
-      const date = new Date(node.fetchedAt);
-
-      // Bucket by minute (YYYY-MM-DD HH:MM)
+  // Aggregate snapshots by minute
+  const aggregated: Record<number, ChartPoint> = pnodes
+    .filter((n) => n.fetchedAt)
+    .map((n) => ({
+      timestamp: new Date(n.fetchedAt!).getTime(),
+      count: 1, // each snapshot counts as 1 node; adjust if storing batch counts
+    }))
+    .reduce<Record<number, ChartPoint>>((acc, point) => {
+      const date = new Date(point.timestamp);
       const bucketTime = new Date(
         date.getFullYear(),
         date.getMonth(),
@@ -40,11 +39,32 @@ export default function PNodeHistoryChart({ pnodes }: Props) {
       ).getTime();
 
       acc[bucketTime] ??= { timestamp: bucketTime, count: 0 };
-      acc[bucketTime].count += 1;
+      acc[bucketTime].count += point.count;
 
       return acc;
-    }, {})
-  ).sort((a, b) => a.timestamp - b.timestamp);
+    }, {});
+
+  // Convert to sorted array
+  let data: ChartPoint[] = Object.values(aggregated).sort((a, b) => a.timestamp - b.timestamp);
+
+  // Auto-fill missing minutes for smooth curve
+  if (data.length > 1) {
+    const filled: ChartPoint[] = [];
+    let lastCount = data[0].count;
+    let current = data[0].timestamp;
+
+    const end = data[data.length - 1].timestamp;
+
+    while (current <= end) {
+      if (aggregated[current]) {
+        lastCount = aggregated[current].count;
+      }
+      filled.push({ timestamp: current, count: lastCount });
+      current += 60_000; // next minute
+    }
+
+    data = filled;
+  }
 
   const hasOffline = pnodes.some((n) => n.status === "offline");
   const lineColor = hasOffline ? "#ef4444" : "#3b82f6";
@@ -65,37 +85,26 @@ export default function PNodeHistoryChart({ pnodes }: Props) {
         pNode Count Over Time
       </h2>
 
-      {/* Fixed height = zero warnings, always */}
-      <div className="w-full h-64 bg-white rounded p-2 shadow-inner">
+      <div className="w-full h-64 min-h-[16rem] bg-white rounded p-2 shadow-inner">
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={data} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
             <CartesianGrid stroke="#e5e7eb" strokeDasharray="3 3" />
 
-            {/* Time-based X-axis */}
             <XAxis
               dataKey="timestamp"
               type="number"
               scale="time"
               domain={["dataMin", "dataMax"]}
               tickFormatter={(ts) =>
-                new Date(ts).toLocaleTimeString([], {
-                  hour: "2-digit",
-                  minute: "2-digit",
-                })
+                new Date(ts).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
               }
               stroke="#6b7280"
             />
 
-            <YAxis
-              allowDecimals={false}
-              stroke="#6b7280"
-              tick={{ fill: "#6b7280" }}
-            />
+            <YAxis allowDecimals={false} stroke="#6b7280" tick={{ fill: "#6b7280" }} />
 
             <Tooltip
-              labelFormatter={(ts) =>
-                new Date(ts as number).toLocaleString()
-              }
+              labelFormatter={(ts) => new Date(ts as number).toLocaleString()}
               contentStyle={{
                 backgroundColor: "#f9fafb",
                 border: "1px solid #d1d5db",

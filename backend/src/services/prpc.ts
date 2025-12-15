@@ -1,13 +1,14 @@
 import axios from "axios";
+import cron from "node-cron";
 import { PNodeModel } from "../models/PNode";
 import {
   getSortedHealthyEndpoints,
   recordFailure,
   recordSuccess,
+  persistHealthSnapshot,
 } from "./endpointHealth";
-import { persistHealthSnapshot } from "./endpointHealth";
 
-interface GossipNode {
+export interface GossipNode {
   id: string;
   type: string;
   address?: string;
@@ -22,11 +23,14 @@ const MOCK_PNODES: GossipNode[] = [
 
 const MAX_RETRIES = 3;
 
-export async function fetchPNodeList(): Promise<GossipNode[]> {
+/**
+ * Core function: fetch pNodes from endpoints
+ * @param saveToDb whether to persist first successful result to MongoDB
+ */
+export async function fetchPNodeList(saveToDb = true): Promise<GossipNode[]> {
   const endpoints = getSortedHealthyEndpoints();
   let firstSuccessfulPNodes: GossipNode[] | null = null;
 
-  // Helper to attempt fetching from one endpoint
   const fetchFromEndpoint = async (url: string): Promise<GossipNode[] | null> => {
     for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
       const start = Date.now();
@@ -55,7 +59,7 @@ export async function fetchPNodeList(): Promise<GossipNode[]> {
         }));
 
         // Persist only for the first successful endpoint
-        if (!firstSuccessfulPNodes) {
+        if (saveToDb && !firstSuccessfulPNodes) {
           firstSuccessfulPNodes = pnodes;
           await PNodeModel.insertMany(
             pnodes.map((p) => ({ ...p, fetchedAt: new Date() }))
@@ -74,16 +78,15 @@ export async function fetchPNodeList(): Promise<GossipNode[]> {
     return null;
   };
 
-  // Start all fetches in parallel
+  // Launch all endpoints in parallel
   const fetchPromises = endpoints.map((url) => fetchFromEndpoint(url));
 
-  // Return the first successful endpoint immediately
+  // Return first successful result immediately for UI
   const firstResult = await Promise.race(fetchPromises);
 
-  // Let all other endpoints continue in the background
+  // Continue updating health and background fetches
   Promise.all(fetchPromises).then(() => persistHealthSnapshot()).catch(console.error);
 
-  // If we got a first successful result, return it
   if (firstResult) return firstResult;
 
   // Fallback to mock if none succeeded
@@ -91,9 +94,25 @@ export async function fetchPNodeList(): Promise<GossipNode[]> {
     console.warn("[WARN] All endpoints failed. Returning mock data.");
   }
 
-  await PNodeModel.insertMany(
-    MOCK_PNODES.map((p) => ({ ...p, fetchedAt: new Date() }))
-  );
+  if (saveToDb) {
+    await PNodeModel.insertMany(MOCK_PNODES.map((p) => ({ ...p, fetchedAt: new Date() })));
+  }
 
   return MOCK_PNODES;
+}
+
+/**
+ * Cron job: fetch and save pNodes every minute
+ * This is completely independent of the frontend
+ */
+export function startPNodeCron() {
+  cron.schedule("* * * * *", async () => {
+    console.log("[CRON] Running fetchPNodeList...");
+    try {
+      await fetchPNodeList(true); // save snapshot
+      console.log("[CRON] Done fetching pNodes.");
+    } catch (err) {
+      console.error("[CRON] Error fetching pNodes:", err);
+    }
+  });
 }
