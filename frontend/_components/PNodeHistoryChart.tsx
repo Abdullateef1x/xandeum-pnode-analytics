@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo } from "react";
 import {
   LineChart,
   Line,
@@ -10,133 +10,170 @@ import {
   ResponsiveContainer,
   CartesianGrid,
 } from "recharts";
-import { PNode } from "@/_lib/api";
+import { PNodeSnapshot } from "@/_lib/api";
 
 interface Props {
-  pnodes: PNode[]; // historical snapshots
+  pnodes: PNodeSnapshot[];
 }
 
 type ChartPoint = {
   timestamp: number;
-  count: number;
+  total: number;
+  online: number;
+  offline: number;
 };
 
 export default function PNodeHistoryChart({ pnodes }: Props) {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const [data, setData] = useState<ChartPoint[]>([]);
-  const [hasOffline, setHasOffline] = useState(false);
-  const [containerHeight, setContainerHeight] = useState(300);
+  /**
+   * Transform snapshots → continuous minute-by-minute chart data
+   */
+  const data: ChartPoint[] = useMemo(() => {
+    if (!pnodes || pnodes.length === 0) return [];
 
-  useEffect(() => {
-    if (!pnodes || !pnodes.length) return;
-
-    const aggregated: Record<number, ChartPoint> = {};
-    let offlineFlag = false;
-
-    pnodes.forEach((n) => {
-      if (!n.fetchedAt) return;
-
-      const ts = new Date(n.fetchedAt).getTime();
-      const date = new Date(ts);
-      const bucketTime = new Date(
-        date.getFullYear(),
-        date.getMonth(),
-        date.getDate(),
-        date.getHours(),
-        date.getMinutes()
-      ).getTime();
-
-      aggregated[bucketTime] ??= { timestamp: bucketTime, count: 0 };
-      aggregated[bucketTime].count += 1;
-
-      if (n.status === "offline") offlineFlag = true;
-    });
-
-    // Sort
-    let chartData: ChartPoint[] = Object.values(aggregated).sort(
-      (a, b) => a.timestamp - b.timestamp
+    // Sort ascending (important for charts)
+    const sorted = [...pnodes].sort(
+      (a, b) =>
+        new Date(a.fetchedAt).getTime() -
+        new Date(b.fetchedAt).getTime()
     );
 
-    // Auto-fill missing minutes
-    if (chartData.length > 1) {
-      const filled: ChartPoint[] = [];
-      let lastCount = chartData[0].count;
-      let current = chartData[0].timestamp;
-      const end = chartData[chartData.length - 1].timestamp;
+    // Aggregate by minute
+    const buckets = new Map<number, ChartPoint>();
 
-      while (current <= end) {
-        if (aggregated[current]) lastCount = aggregated[current].count;
-        filled.push({ timestamp: current, count: lastCount });
-        current += 60_000;
-      }
-      chartData = filled;
+    for (const snap of sorted) {
+      const ts = new Date(snap.fetchedAt);
+      const bucketTs = new Date(
+        ts.getFullYear(),
+        ts.getMonth(),
+        ts.getDate(),
+        ts.getHours(),
+        ts.getMinutes(),
+        0,
+        0
+      ).getTime();
+
+      buckets.set(bucketTs, {
+        timestamp: bucketTs,
+        total: snap.total,
+        online: snap.online,
+        offline: snap.offline,
+      });
     }
 
-    setData(chartData);
-    setHasOffline(offlineFlag);
+    const times = Array.from(buckets.keys()).sort((a, b) => a - b);
+    if (times.length === 0) return [];
+
+    // Fill missing minutes for smooth lines
+    const filled: ChartPoint[] = [];
+    let current = times[0];
+    const end = times[times.length - 1];
+
+    let last = buckets.get(current)!;
+
+    while (current <= end) {
+      const existing = buckets.get(current);
+      if (existing) last = existing;
+
+      filled.push({
+        timestamp: current,
+        total: last.total,
+        online: last.online,
+        offline: last.offline,
+      });
+
+      current += 60_000;
+    }
+
+    return filled;
   }, [pnodes]);
 
-  useEffect(() => {
-    if (containerRef.current) setContainerHeight(containerRef.current.clientHeight);
-  }, []);
-
-  if (!data.length) {
+  if (data.length === 0) {
     return (
-      <div className="bg-white dark:bg-gray-900 rounded-xl shadow p-4">
-        <p className="text-sm text-gray-500 dark:text-gray-400">
-          No historical data yet
+      <div className="bg-gray-800 rounded-xl shadow p-4">
+        <p className="text-sm text-gray-400">
+          No historical snapshot data yet
         </p>
       </div>
     );
   }
 
-  const lineColor = hasOffline ? "#ef4444" : "#3b82f6";
-
   return (
-    <div className="bg-gray-50 dark:bg-gray-900 rounded-xl shadow p-4">
-      <h2 className="text-lg font-semibold mb-4 text-gray-900 dark:text-gray-100">
+    <div className="bg-gray-800 rounded-xl shadow p-4">
+      <h2 className="text-lg font-semibold mb-4 text-gray-100">
         pNode Count Over Time
       </h2>
 
-      <div
-        ref={containerRef}
-        className="w-full h-64 min-h-[16rem] bg-white rounded p-2 shadow-inner"
-      >
-        {containerHeight > 0 && (
-          <ResponsiveContainer width="100%" height={containerHeight}>
-            <LineChart data={data} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
-              <CartesianGrid stroke="#e5e7eb" strokeDasharray="3 3" />
-              <XAxis
-                dataKey="timestamp"
-                type="number"
-                scale="time"
-                domain={["dataMin", "dataMax"]}
-                tickFormatter={(ts) =>
-                  new Date(ts).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
-                }
-                stroke="#6b7280"
-              />
-              <YAxis allowDecimals={false} stroke="#6b7280" tick={{ fill: "#6b7280" }} />
-              <Tooltip
-                labelFormatter={(ts) => new Date(ts as number).toLocaleString()}
-                contentStyle={{
-                  backgroundColor: "#f9fafb",
-                  border: "1px solid #d1d5db",
-                  borderRadius: "0.5rem",
-                  color: "#111827",
-                }}
-              />
-              <Line
-                type="monotone"
-                dataKey="count"
-                stroke={lineColor}
-                strokeWidth={2}
-                dot={false}
-                isAnimationActive={false}
-              />
-            </LineChart>
-          </ResponsiveContainer>
-        )}
+      <div className="w-full h-64 min-h-[16rem] bg-gray-900 rounded p-2 shadow-inner">
+        <ResponsiveContainer width="100%" height="100%">
+          <LineChart
+            data={data}
+            margin={{ top: 10, right: 20, left: 0, bottom: 0 }}
+          >
+            <CartesianGrid stroke="#374151" strokeDasharray="3 3" />
+
+            <XAxis
+              dataKey="timestamp"
+              type="number"
+              scale="time"
+              domain={["dataMin", "dataMax"]}
+              tickFormatter={(ts) =>
+                new Date(ts).toLocaleTimeString([], {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })
+              }
+              stroke="#9ca3af"
+            />
+
+            <YAxis
+              allowDecimals={false}
+              stroke="#9ca3af"
+              tick={{ fill: "#9ca3af" }}
+            />
+
+            <Tooltip
+              labelFormatter={(ts) =>
+                new Date(ts as number).toLocaleString()
+              }
+              contentStyle={{
+                backgroundColor: "#111827",
+                border: "1px solid #374151",
+                borderRadius: "0.5rem",
+                color: "#f9fafb",
+              }}
+            />
+
+            {/* Total */}
+            <Line
+              type="monotone"
+              dataKey="total"
+              stroke="#3b82f6"
+              strokeWidth={2}
+              dot={false}
+              isAnimationActive={false}
+            />
+
+            {/* Online */}
+            <Line
+              type="monotone"
+              dataKey="online"
+              stroke="#22c55e"
+              strokeWidth={2}
+              dot={false}
+              isAnimationActive={false}
+            />
+
+            {/* Offline */}
+            <Line
+              type="monotone"
+              dataKey="offline"
+              stroke="#ef4444"
+              strokeWidth={2}
+              dot={false}
+              isAnimationActive={false}
+            />
+          </LineChart>
+        </ResponsiveContainer>
       </div>
     </div>
   );

@@ -19,6 +19,13 @@ const data = await res.json();
 return data.pnodes;
 }
 
+export type PNodeSnapshot = {
+  fetchedAt: string;
+  total: number;
+  online: number;
+  offline: number;
+};
+
 
 export async function fetchHistoricalPNodes(cursor?: string,
   limit = 25,
@@ -38,7 +45,7 @@ if (!res.ok) {
   throw new Error(`Error fetching historical pNodes: ${res.statusText}`);
 }
   return res.json() as Promise<{
-    pnodes: PNode[];
+    pnodes: PNodeSnapshot[];
     nextCursor: string | null;
   }>;
 
