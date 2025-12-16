@@ -12,7 +12,10 @@ const PNodeSnapshotSchema = new Schema<PNodeSnapshot>({
   total: { type: Number, required: true },
   online: { type: Number, required: true },
   offline: { type: Number, required: true },
-});
+}, {
+    collection: "pnode_snapshots", 
+  }
+);
 
 export const PNodeSnapshotModel = model<PNodeSnapshot>(
   "PNodeSnapshot",
