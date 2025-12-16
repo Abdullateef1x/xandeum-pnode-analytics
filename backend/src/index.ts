@@ -5,10 +5,23 @@ import { connectDB } from "./db";
 import pnodeRoutes from "./routes/pnodes";
 import historyRoutes from "./routes/history";
 import healthRoutes from "./routes/endpoints";
+import { seedInitialSnapshots, startPNodeCron } from "./services/prpc";
 
 dotenv.config();
 connectDB();
 
+// Seed initial snapshots and start cron
+seedInitialSnapshots()
+  .then(() => {
+    if (process.env.NODE_ENV !== "production")
+    console.log("[INIT] Initial pNode snapshots seeded")
+  })
+  .catch(err => {
+    if (process.env.NODE_ENV !== "production")
+    console.error("[INIT] Failed to seed snapshots:", err)
+  });
+
+startPNodeCron(); // start the cron to create new snapshots every minute
 
 const app = express();
 app.use(cors());
