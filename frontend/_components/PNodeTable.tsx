@@ -30,7 +30,7 @@ export default function PNodeTable({
 
           <thead className="border-b border-gray-600 text-gray-300">
             <tr>
-              <th className="py-2">Address</th>
+              <th className="py-2 text-left pl-1">Address</th>
               <th className="py-2 text-center">Status</th>
               <th className="py-2 text-center">Last Seen</th>
               <th className="py-2 text-center">Fetched At</th>
@@ -40,7 +40,7 @@ export default function PNodeTable({
           <tbody>
             {pnodes.map((node) => (
               <tr key={`${node.id}-${node.fetchedAt}`} className="border-b last:border-0">
-                <td className={`py-2 font-mono text-xs ${bodyTextClass}`}>{node.address || node.id}</td>
+                <td className={`py-2 pl-1 font-mono text-xs text-left ${bodyTextClass}`}>{node.address || node.id}</td>
                 <td className="py-2 text-center">
                   <span
                     className={`inline-block w-full px-2 py-1 rounded text-xs font-medium truncate ${
