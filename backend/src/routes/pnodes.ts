@@ -3,29 +3,43 @@ import { fetchLivePNodes, GossipNode } from "../services/prpc";
 
 const router = Router();
 
+// Centralized dev-only flag
+const isDev = process.env.NODE_ENV !== "production";
+
 // Live pNodes (fetch from healthiest endpoints, no DB writes)
 router.get("/pnodes/live", async (_req, res) => {
   try {
     const result: GossipNode[] = await fetchLivePNodes();
 
-    // TypeScript safe check: node explicitly typed
-    const usingMock = result.some((node: GossipNode) => node.id.startsWith("mock"));
+    // TypeScript-safe check
+    const usingMock = result.some((node: GossipNode) =>
+      node.id.startsWith("mock")
+    );
 
-    if (process.env.NODE_ENV !== "production") {
+    if (isDev) {
       if (usingMock) {
-        console.warn("[WARN] Returned mock pNode data (all endpoints failed)");
+        console.warn(
+          "[WARN] Returned mock pNode data (all endpoints failed)"
+        );
       } else {
-        console.log("[INFO] pNode data served from live pRPC endpoints");
+        console.log(
+          "[INFO] pNode data served from live pRPC endpoints"
+        );
       }
     }
 
     res.json({ pnodes: result });
   } catch (err) {
-    if (process.env.NODE_ENV !== "production") {
-      console.error("[ERROR] Failed to fetch live pNode data:", err);
+    if (isDev) {
+      console.error(
+        "[ERROR] Failed to fetch live pNode data:",
+        err
+      );
     }
 
-    res.status(500).json({ error: "Unable to fetch live pNode data" });
+    res.status(500).json({
+      error: "Unable to fetch live pNode data",
+    });
   }
 });
 

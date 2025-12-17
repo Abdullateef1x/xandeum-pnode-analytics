@@ -42,32 +42,43 @@ export default function HistoricalPNodesClient() {
               <col className="w-1/6" />
             </colgroup>
 
-            <thead className="border-b border-gray-600 text-gray-300">
-              <tr>
-                <th className="py-2 text-left">Time</th>
-                <th className="py-2 text-center">Status</th>
-                <th className="py-2 text-center">Online</th>
-                <th className="py-2 text-center">Offline</th>
-              </tr>
-            </thead>
+           <thead className="border-b border-gray-600 text-gray-300">
+  <tr>
+    <th className="py-2 pl-1 text-left font-medium">
+      Time
+    </th>
+    <th className="py-2 text-center font-medium">
+      Status
+    </th>
+    <th className="py-2 text-center font-medium">
+      Online
+    </th>
+    <th className="py-2 text-center font-medium">
+      Offline
+    </th>
+  </tr>
+</thead>
 
-            <tbody>
-              {snapshots.map((s) => (
-                <tr key={s.fetchedAt.toString()} className="border-b last:border-0">
-                  <td className="py-2 text-gray-200 text-left">{new Date(s.fetchedAt).toLocaleString()}</td>
-                  <td className="py-2 text-gray-200 text-center">{s.total === s.online + s.offline ? "✅" : "⚠️"}</td>
-                  <td className="text-green-400 text-center">{s.online}</td>
-                  <td className="text-red-400 text-center">{s.offline}</td>
-                </tr>
-              ))}
-              {snapshots.length === 0 && !loading && (
-                <tr>
-                  <td colSpan={4} className="py-6 text-center text-gray-400">
-                    No snapshot data available
-                  </td>
-                </tr>
-              )}
-            </tbody>
+
+   <tbody>
+  {snapshots.map((s) => (
+    <tr key={s.fetchedAt.toString()} className="border-b last:border-0">
+      <td className="py-2 pl-1 text-left text-gray-200">
+        {new Date(s.fetchedAt).toLocaleString()}
+      </td>
+      <td className="py-2 text-center text-gray-200">
+        {s.total === s.online + s.offline ? "✅" : "⚠️"}
+      </td>
+      <td className="text-green-400 text-center">
+        {s.online}
+      </td>
+      <td className="text-red-400 text-center">
+        {s.offline}
+      </td>
+    </tr>
+  ))}
+</tbody>
+
           </table>
         </div>
       </div>

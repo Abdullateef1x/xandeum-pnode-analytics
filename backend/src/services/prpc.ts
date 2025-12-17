@@ -8,7 +8,14 @@ import {
 } from "./endpointHealth";
 import { PNodeSnapshotModel } from "../models/PNodeSnapshot";
 
-/* ----------------------------- Types ----------------------------- */
+/* ---------------------------------- */
+/*  Env guard                          */
+/* ---------------------------------- */
+const isDev = process.env.NODE_ENV !== "production";
+
+/* ---------------------------------- */
+/*  Types                              */
+/* ---------------------------------- */
 
 export interface GossipNode {
   id: string;
@@ -18,7 +25,9 @@ export interface GossipNode {
   lastSeen?: number;
 }
 
-/* -------------------------- Mock fallback ------------------------- */
+/* ---------------------------------- */
+/*  Mock fallback                      */
+/* ---------------------------------- */
 
 const MOCK_PNODES: GossipNode[] = [
   { id: "mock1", type: "pNode", address: "0x123", status: "offline" },
@@ -27,11 +36,11 @@ const MOCK_PNODES: GossipNode[] = [
 
 const MAX_RETRIES = 3;
 
-/* --------------------- Fetch live pNodes ONLY --------------------- */
-/**
- * Fetch live pNodes from healthiest endpoint
- * ❗ NO DATABASE WRITES HERE
- */
+/* ---------------------------------- */
+/*  Fetch live pNodes ONLY             */
+/*  ❗ NO DATABASE WRITES HERE         */
+/* ---------------------------------- */
+
 export async function fetchLivePNodes(): Promise<GossipNode[]> {
   const endpoints = getSortedHealthyEndpoints();
 
@@ -39,6 +48,7 @@ export async function fetchLivePNodes(): Promise<GossipNode[]> {
     for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
       try {
         const start = Date.now();
+
         const response = await axios.post(
           url,
           { jsonrpc: "2.0", id: 1, method: "get-pods", params: [] },
@@ -50,6 +60,10 @@ export async function fetchLivePNodes(): Promise<GossipNode[]> {
         const pods = response.data?.result?.pods;
         if (!pods?.length) throw new Error("No pods returned");
 
+        if (isDev) {
+          console.log(`[INFO] pNodes fetched from ${url}`);
+        }
+
         return pods.map((pod: any) => ({
           id: pod.address,
           type: "pNode",
@@ -59,26 +73,34 @@ export async function fetchLivePNodes(): Promise<GossipNode[]> {
         }));
       } catch (err) {
         recordFailure(url);
-        if (process.env.NODE_ENV !== "production") {
-          console.warn(`[WARN] ${url} failed (attempt ${attempt})`);
+
+        if (isDev) {
+          console.warn(
+            `[WARN] ${url} failed (attempt ${attempt}/${MAX_RETRIES})`
+          );
         }
       }
     }
+  }
+
+  if (isDev) {
+    console.warn("[WARN] All endpoints failed — returning mock pNodes");
   }
 
   // Fallback if all endpoints fail
   return MOCK_PNODES;
 }
 
-/* ----------------------- Cron snapshot logic ---------------------- */
-/**
- * Runs every minute
- * ✅ ONE document per minute
- * ✅ Perfect X-axis data
- */
+/* ---------------------------------- */
+/*  Cron snapshot logic                */
+/*  Runs every minute                  */
+/* ---------------------------------- */
+
 export function startPNodeCron() {
   cron.schedule("* * * * *", async () => {
-    console.log("[CRON] Snapshotting pNodes...");
+    if (isDev) {
+      console.log("[CRON] Snapshotting pNodes...");
+    }
 
     try {
       const pnodes = await fetchLivePNodes();
@@ -96,24 +118,35 @@ export function startPNodeCron() {
 
       persistHealthSnapshot();
 
-      console.log("[CRON] Snapshot saved:", { total, online, offline });
+      if (isDev) {
+        console.log("[CRON] Snapshot saved:", {
+          total,
+          online,
+          offline,
+        });
+      }
     } catch (err) {
-      console.error("[CRON] Snapshot failed:", err);
+      if (isDev) {
+        console.error("[CRON] Snapshot failed:", err);
+      }
     }
   });
 }
 
-/* ----------------------- First-run seeding ------------------------ */
+/* ---------------------------------- */
+/*  First-run seeding                  */
+/* ---------------------------------- */
 /**
  * Generates initial historical continuity
- * ✔ Not fake data
- * ✔ Industry-accepted practice
  */
+
 export async function seedInitialSnapshots() {
   const existing = await PNodeSnapshotModel.countDocuments();
   if (existing > 0) return;
 
-  console.log("[SEED] Creating initial pNode history...");
+  if (isDev) {
+    console.log("[SEED] Creating initial pNode history...");
+  }
 
   const now = Date.now();
   let baseCount = 8;
@@ -130,5 +163,7 @@ export async function seedInitialSnapshots() {
     });
   }
 
-  console.log("[SEED] Initial snapshots complete.");
+  if (isDev) {
+    console.log("[SEED] Initial snapshots complete.");
+  }
 }
