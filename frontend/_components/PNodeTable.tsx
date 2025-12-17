@@ -22,33 +22,28 @@ export default function PNodeTable({
       <div className="overflow-x-auto">
         <table className="w-full text-sm table-fixed">
           <colgroup>
-            <col style={{ width: "35%" }} />
-            <col style={{ width: "15%" }} />
-            <col style={{ width: "25%" }} />
-            <col style={{ width: "25%" }} />
+            <col className="w-1/3" />
+            <col className="w-1/6" />
+            <col className="w-1/6" />
+            <col className="w-1/6" />
           </colgroup>
 
-          <thead className="border-b border-gray-600">
-            <tr className="text-left">
-              <th className={`py-2 ${bodyTextClass}`}>Address</th>
-              <th className={bodyTextClass}>Status</th>
-              <th className={bodyTextClass}>Last Seen</th>
-              <th className={bodyTextClass}>Fetched At</th>
+          <thead className="border-b border-gray-600 text-gray-300">
+            <tr>
+              <th className="py-2">Address</th>
+              <th className="py-2 text-center">Status</th>
+              <th className="py-2 text-center">Last Seen</th>
+              <th className="py-2 text-center">Fetched At</th>
             </tr>
           </thead>
 
           <tbody>
             {pnodes.map((node) => (
-              <tr
-                key={`${node.id}-${node.fetchedAt}`}
-                className="border-b last:border-0"
-              >
-                <td className={`py-2 font-mono text-xs ${bodyTextClass}`}>
-                  {node.address || node.id}
-                </td>
-                <td>
+              <tr key={`${node.id}-${node.fetchedAt}`} className="border-b last:border-0">
+                <td className={`py-2 font-mono text-xs ${bodyTextClass}`}>{node.address || node.id}</td>
+                <td className="py-2 text-center">
                   <span
-                    className={`px-2 py-1 rounded text-xs font-medium ${
+                    className={`inline-block w-full px-2 py-1 rounded text-xs font-medium truncate ${
                       node.status === "online"
                         ? "bg-green-600 text-white"
                         : "bg-red-600 text-white"
@@ -57,18 +52,21 @@ export default function PNodeTable({
                     {node.status || "unknown"}
                   </span>
                 </td>
-                <td className={`py-2 ${bodyTextClass}`}>
-                  {node.lastSeen
-                    ? new Date(node.lastSeen * 1000).toLocaleString()
-                    : "—"}
+                <td className={`py-2 text-center ${bodyTextClass}`}>
+                  {node.lastSeen ? new Date(node.lastSeen * 1000).toLocaleString() : "—"}
                 </td>
-                <td className={`py-2 ${bodyTextClass}`}>
-                  {node.fetchedAt
-                    ? new Date(node.fetchedAt).toLocaleString()
-                    : "Live"}
+                <td className={`py-2 text-center ${bodyTextClass}`}>
+                  {node.fetchedAt ? new Date(node.fetchedAt).toLocaleString() : "Live"}
                 </td>
               </tr>
             ))}
+            {pnodes.length === 0 && (
+              <tr>
+                <td colSpan={4} className="py-6 text-center text-gray-400">
+                  No pNode data
+                </td>
+              </tr>
+            )}
           </tbody>
         </table>
       </div>
