@@ -23,14 +23,13 @@ export default function PNodeTable({
 
       <div className="overflow-x-auto">
         <table className="w-full text-sm table-fixed">
-          <colgroup>
-            {/* Primary identifier */}
-            <col className="w-1/3" />
-            {/* Categorical / numeric */}
-            <col className="w-1/6" />
-            <col className="w-1/6" />
-            <col className="w-1/6" />
-          </colgroup>
+         <colgroup>
+  <col className="w-2/5" />  
+  <col className="w-1/5" />
+  <col className="w-1/5" />
+  <col className="w-1/5" />
+</colgroup>
+
 
           <thead className="border-b border-gray-600 text-gray-300">
             <tr>
