@@ -141,5 +141,4 @@ Monitor endpoint health via logs and MongoDB
 📄 License
 MIT © Kehinde Alao
 
-yaml
-Copy code
+
