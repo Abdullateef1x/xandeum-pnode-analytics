@@ -1,4 +1,4 @@
-import { Router } from "express";
+import { Router, Request, Response } from "express";
 import { fetchLivePNodes, GossipNode } from "../services/prpc";
 
 const router = Router();
@@ -7,7 +7,7 @@ const router = Router();
 const isDev = process.env.NODE_ENV !== "production";
 
 // Live pNodes (fetch from healthiest endpoints, no DB writes)
-router.get("/pnodes/live", async (_req, res) => {
+router.get("/pnodes/live", async (_req: Request, res: Response) => {
   try {
     const result: GossipNode[] = await fetchLivePNodes();
 
@@ -18,23 +18,16 @@ router.get("/pnodes/live", async (_req, res) => {
 
     if (isDev) {
       if (usingMock) {
-        console.warn(
-          "[WARN] Returned mock pNode data (all endpoints failed)"
-        );
+        console.warn("[WARN] Returned mock pNode data (all endpoints failed)");
       } else {
-        console.log(
-          "[INFO] pNode data served from live pRPC endpoints"
-        );
+        console.log("[INFO] pNode data served from live pRPC endpoints");
       }
     }
 
     res.json({ pnodes: result });
   } catch (err) {
     if (isDev) {
-      console.error(
-        "[ERROR] Failed to fetch live pNode data:",
-        err
-      );
+      console.error("[ERROR] Failed to fetch live pNode data:", err);
     }
 
     res.status(500).json({

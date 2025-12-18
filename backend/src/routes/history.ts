@@ -1,4 +1,4 @@
-import { Router } from "express";
+import { Router, Request, Response } from "express";
 import { PNodeSnapshotModel } from "../models/PNodeSnapshot";
 
 const router = Router();
@@ -9,7 +9,7 @@ const router = Router();
  *   - limit?: number (default 25, max 100)
  *   - cursor?: ISO date string to paginate backwards
  */
-router.get("/pnodes/history", async (req, res) => {
+router.get("/pnodes/history", async (req: Request, res: Response) => {
   try {
     const limit = Math.min(Number(req.query.limit) || 25, 100);
     const cursor = req.query.cursor as string | undefined;
