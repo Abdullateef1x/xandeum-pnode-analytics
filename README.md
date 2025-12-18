@@ -36,7 +36,6 @@ Built with **Node.js**, **Express**, **Next.js**, **TypeScript**, and **Tailwind
 - **MongoDB** (Atlas or local instance)  
 
 ---
-
 ### ⚡ Quick Start
 
 Spin up both backend and frontend for demos or local testing:
@@ -54,7 +53,8 @@ Frontend: http://localhost:3000
 🗂️ Environment Variables
 Create a .env file in backend/:
 
-
+env
+Copy code
 MONGO_URI=mongodb+srv://<username>:<password>@<cluster>.mongodb.net/?appName=<appName>
 PORT=4000
 Replace <username>, <password>, <cluster>, and <appName> with your MongoDB credentials.
@@ -72,7 +72,8 @@ Route	Description
 
 Development:
 
-
+bash
+Copy code
 cd backend
 npm install
 npm run dev
@@ -116,9 +117,9 @@ Historical snapshots display in table + line chart
 Endpoint health scoring visible in backend logs and MongoDB
 
 ⚡ Optional Enhancements
-Historical Filtering by status (online/offline) and pagination cursor
+Historical filtering by status (online/offline) and pagination cursor
 
-Endpoint Availability Awareness with automatic mock fallback
+Endpoint availability awareness with automatic mock fallback
 
 Pagination for efficient browsing of historical data
 
