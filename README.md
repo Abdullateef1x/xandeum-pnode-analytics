@@ -47,17 +47,17 @@ npx concurrently "cd backend && npm run dev" "cd frontend && npm run dev"
 Backend: http://localhost:4000
 Frontend: http://localhost:3000
 
+```
 ⚠️ Make sure your MongoDB URI is correctly set in backend/.env.
 🔹 Live pNode data will be fetched from public pRPC endpoints; fallback mock data is used if endpoints fail.
 
 🗂️ Environment Variables
 Create a .env file in backend/:
 
-env
-Copy code
+
 MONGO_URI=mongodb+srv://<username>:<password>@<cluster>.mongodb.net/?appName=<appName>
 PORT=4000
-Replace <username>, <password>, <cluster>, and <appName> with your MongoDB credentials.
+Replace <username>, <password>, <cluster>, and <appName> with your credentials.
 PORT is optional (defaults to 4000). Optionally create .env.example for sharing.
 
 🏗️ Backend
@@ -72,8 +72,8 @@ Route	Description
 
 Development:
 
-bash
-Copy code
+```bash
+
 cd backend
 npm install
 npm run dev
@@ -83,19 +83,23 @@ Stack: Next.js + TypeScript + Tailwind CSS
 
 Key Components:
 
-Component	Description
-PNodeTable	Displays live or historical pNodes
-PNodeHistoryChart	Line chart visualization
-LivePNodes	Client-side polling for live pNodes
-HistoricalPNodesClient	Paginated + filtered historical pNodes
+| Component                | Description                               |
+|--------------------------|-------------------------------------------|
+| PNodeTable               | Displays live or historical pNodes       |
+| PNodeHistoryChart        | Line chart visualization                  |
+| LivePNodes               | Client-side polling for live pNodes      |
+| HistoricalPNodesClient   | Paginated + filtered historical pNodes   |
+
 
 Development:
 
-bash
+```bash
 Copy code
 cd frontend
 npm install
 npm run dev
+
+
 🗄️ Database
 MongoDB stores historical pNode snapshots and endpoint health metrics.
 
