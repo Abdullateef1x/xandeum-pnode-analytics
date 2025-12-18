@@ -44,9 +44,8 @@ Spin up both backend and frontend for demos or local testing:
 ```bash
 # From project root
 npm install
-concurrently "cd backend && npm run dev" "cd frontend && npm run dev"
+npx concurrently "cd backend && npm run dev" "cd frontend && npm run dev"
 Backend: http://localhost:4000
-
 Frontend: http://localhost:3000
 
 ⚠️ Make sure your MongoDB URI is correctly set in backend/.env.
@@ -59,9 +58,7 @@ Create a .env file in backend/:
 MONGO_URI=mongodb+srv://<username>:<password>@<cluster>.mongodb.net/?appName=<appName>
 PORT=4000
 Replace <username>, <password>, <cluster>, and <appName> with your MongoDB credentials.
-
-PORT is optional; defaults to 4000.
-Optionally create .env.example for public sharing.
+PORT is optional (defaults to 4000). Optionally create .env.example for sharing.
 
 🏗️ Backend
 Location: backend/
@@ -75,8 +72,7 @@ Route	Description
 
 Development:
 
-bash
-Copy code
+
 cd backend
 npm install
 npm run dev
@@ -87,13 +83,15 @@ Stack: Next.js + TypeScript + Tailwind CSS
 Key Components:
 
 Component	Description
-PNodeTable	Displays live or historical pNodes in a table
-PNodeHistoryChart	Line chart visualization of historical snapshots
+PNodeTable	Displays live or historical pNodes
+PNodeHistoryChart	Line chart visualization
 LivePNodes	Client-side polling for live pNodes
 HistoricalPNodesClient	Paginated + filtered historical pNodes
 
 Development:
 
+bash
+Copy code
 cd frontend
 npm install
 npm run dev
