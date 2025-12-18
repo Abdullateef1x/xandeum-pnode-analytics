@@ -44,10 +44,10 @@ Spin up both backend and frontend for demos or local testing:
 # From project root
 npm install
 npx concurrently "cd backend && npm run dev" "cd frontend && npm run dev"
+```
 Backend: http://localhost:4000
 Frontend: http://localhost:3000
 
-```
 ⚠️ Make sure your MongoDB URI is correctly set in backend/.env.
 🔹 Live pNode data will be fetched from public pRPC endpoints; fallback mock data is used if endpoints fail.
 
@@ -77,9 +77,13 @@ Development:
 cd backend
 npm install
 npm run dev
+```
 💻 Frontend
 Location: frontend/
 Stack: Next.js + TypeScript + Tailwind CSS
+
+---
+
 
 Key Components:
 
@@ -90,8 +94,9 @@ Key Components:
 | LivePNodes               | Client-side polling for live pNodes      |
 | HistoricalPNodesClient   | Paginated + filtered historical pNodes   |
 
+---
 
-Development:
+## Development:
 
 ```bash
 Copy code
@@ -99,6 +104,7 @@ cd frontend
 npm install
 npm run dev
 
+---
 
 🗄️ Database
 MongoDB stores historical pNode snapshots and endpoint health metrics.
