@@ -8,9 +8,10 @@
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
     "skipLibCheck": true,
-
-        "types": ["node"]
-
+    "types": ["node"],        // <-- ensures Node.js globals like 'process' are recognized
+    "resolveJsonModule": true, // <-- optional, useful if you import JSON
+    "allowJs": true            // <-- optional, allows JavaScript imports if needed
   },
-  "include": ["src"]
+  "include": ["src"],
+  "exclude": ["node_modules", "dist"]
 }
