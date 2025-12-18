@@ -1,39 +1,35 @@
 🚀 Xandeum pNode Analytics Dashboard
 
-A full-stack analytics dashboard for monitoring Xandeum pNodes, providing live network visibility, historical data tracking, and endpoint health analysis with persistent storage in MongoDB.
+A full-stack analytics dashboard for monitoring Xandeum pNodes.
+The platform provides live network visibility, historical snapshots, endpoint health monitoring, and persistent storage using MongoDB.
 
 Built with Node.js, Express, Next.js, TypeScript, and Tailwind CSS.
 
-🧠 Overview
-
-This dashboard aggregates pNode data from multiple public pRPC endpoints, evaluates endpoint reliability, and stores historical snapshots for long-term analysis.
-It is designed to be resilient, production-ready, and developer-friendly, with automatic fallbacks and clear separation between backend and frontend.
-
 ✨ Features
 
-🌐 Fetch live pNode data from public pRPC endpoints
+🌐 Fetches live pNode data from public pRPC endpoints
 
-🗄️ Persist historical pNode snapshots in MongoDB
+🗄️ Stores historical pNode snapshots in MongoDB (1 snapshot per minute)
 
-📊 Endpoint health scoring (success rate + latency tracking)
+📊 Endpoint health scoring based on success rate and latency
 
-📋 Live and historical pNode tables with consistent dark mode UI
+📋 Live and historical tables with consistent fixed-column layout
 
-📈 Historical line-chart visualization using Recharts
+📈 Time-series line chart for historical pNode counts (Recharts)
 
-⏱️ Auto-refresh live data every 15 seconds
+⏱️ Automatic refresh of live data every 15 seconds
 
-⚠️ Automatic fallback to mock data if all endpoints fail
+⚠️ Graceful fallback to mock data if all endpoints fail
 
-🌑 Full dark mode support
+🌑 Dark mode UI optimized for monitoring dashboards
 
 🛠️ Tech Stack
 Layer	Technology
 Frontend	Next.js, TypeScript, Tailwind CSS, Recharts
 Backend	Node.js, Express, TypeScript
 Database	MongoDB
-Styling	Tailwind CSS
-Charts	Recharts
+Scheduling	node-cron
+Networking	Axios (JSON-RPC over HTTP)
 📋 Prerequisites
 
 Node.js ≥ 18
@@ -42,13 +38,13 @@ npm ≥ 9
 
 MongoDB (Atlas or local instance)
 
-⚡ Quick Start (Local Development)
+⚡ Local Development (Quick Start)
 
-Run both backend and frontend concurrently for local testing or demos.
+Run both backend and frontend simultaneously:
 
-# From the project root
+# From project root
 npm install
-concurrently "cd backend && npm run dev" "cd frontend && npm run dev"
+npx concurrently "cd backend && npm run dev" "cd frontend && npm run dev"
 
 
 Local URLs
@@ -57,7 +53,7 @@ Backend: http://localhost:4000
 
 Frontend: http://localhost:3000
 
-⚠️ Ensure your MongoDB URI is correctly configured before starting the backend.
+⚠️ Ensure MongoDB is running and the backend .env file is configured.
 
 🗂️ Environment Variables
 Backend (backend/.env)
@@ -65,112 +61,91 @@ MONGO_URI=mongodb+srv://<username>:<password>@<cluster>.mongodb.net/?appName=<ap
 PORT=4000
 
 
-Replace placeholders with your MongoDB credentials
-
 PORT is optional (defaults to 4000)
 
-You may optionally include a .env.example for public reference
+Create .env.example for public sharing if desired
 
-Frontend (Production Only)
+Frontend
+
+The frontend does not require a .env.production file unless deploying to a different backend URL.
+
+If needed, create:
+
 NEXT_PUBLIC_API_BASE_URL=https://your-backend-url.com
 
-
-This ensures the frontend points to the correct backend API in production.
-
-🏗️ Backend
+🏗️ Backend Overview
 
 Location: backend/
 Stack: Node.js + Express + TypeScript
 
 API Endpoints
 Route	Description
-/api/pnodes/live	Fetches live pNode data from public endpoints
-/api/pnodes/history	Returns historical pNode snapshots from MongoDB
+/api/pnodes/live	Fetches live pNodes from healthiest pRPC endpoints
+/api/pnodes/history	Returns paginated historical snapshots
 Development
 cd backend
 npm install
 npm run dev
 
-
-Notes
-
-Console logs are disabled in production via NODE_ENV !== 'production'
-
-Historical snapshots are automatically seeded on first run
-
-Endpoint health metrics are continuously recorded
-
-💻 Frontend
+💻 Frontend Overview
 
 Location: frontend/
 Stack: Next.js + TypeScript + Tailwind CSS
 
 Key Components
 Component	Description
-PNodeTable	Displays live or historical pNodes in a table
-PNodeHistoryChart	Line-chart visualization of historical snapshots
-LivePNodes	Client-side polling for live pNode data
-HistoricalPNodesClient	Paginated and filtered historical view
+PNodeTable	Fixed-layout table for live and historical pNodes
+PNodeHistoryChart	Line chart visualization of historical snapshots
+LivePNodes	Client-side polling for live pNode updates
+HistoricalPNodesClient	Paginated historical snapshot viewer
 Development
 cd frontend
 npm install
 npm run dev
 
+🗄️ Database Design
 
-Notes
-
-Live data auto-refreshes every 15 seconds
-
-All console logs are disabled in production using process.env.NODE_ENV checks
-
-🗄️ Database
-
-MongoDB is used to persist historical snapshots and endpoint health metrics.
+MongoDB is used for persistent historical tracking and health metrics.
 
 Collections
 Collection	Purpose
-pnodes	Stores each pNode snapshot with timestamp
-endpointHealth	Stores endpoint latency and success metrics
-
-Ensure your MONGO_URI is valid for both local and production environments.
-
+pnodesnapshots	Stores one pNode snapshot per minute
+endpointhealth	Tracks endpoint success rate and latency
 🚀 Deployment
-Backend Deployment
+Recommended Setup
+Service	Purpose
+Vercel	Frontend (Next.js)
+Render / Railway	Backend (Node.js + Express)
+MongoDB Atlas	Database
+Deployment Steps (High-Level)
 
-Set environment variables:
+Deploy backend and set MONGO_URI
 
-NODE_ENV=production
-MONGO_URI=your_production_mongodb_uri
+Deploy frontend
 
+Set frontend API base URL (if required)
 
-Start the backend:
+Verify live polling and snapshot persistence
 
-cd backend
-npm run start
+📖 Usage
 
-Frontend Deployment
+Open the frontend dashboard
 
-Set production API base URL:
+View live pNodes (auto-refresh every 15 seconds)
 
-NEXT_PUBLIC_API_BASE_URL=https://your-backend-url.com
+Browse historical snapshots in table and chart views
 
-
-Build and start:
-
-cd frontend
-npm run build
-npm start
-
-
-✅ All debug logs and development warnings are disabled in production.
+Monitor endpoint health via backend logs and database
 
 ⚡ Optional Enhancements
 
-Status-based filtering (online / offline pNodes)
+Historical filtering by status (online/offline)
 
-Cursor-based pagination for large historical datasets
+Advanced pagination and date range filtering
 
-Enhanced endpoint availability awareness and prioritization
+Alerting for sustained offline nodes
+
+Exportable snapshot data
 
 📄 License
 
