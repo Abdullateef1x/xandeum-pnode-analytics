@@ -18,10 +18,6 @@ Built with **Node.js**, **Express**, **Next.js**, **TypeScript**, and **Tailwind
 
 ---
 
-## 🛠️ Getting Started
-
----
-
 ## 🛠️ Tech Stack
 
 | Layer     | Technology |
