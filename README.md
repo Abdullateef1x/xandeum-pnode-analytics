@@ -96,15 +96,14 @@ Key Components:
 
 ---
 
-## Development:
+Development:
 
 ```bash
-Copy code
+
 cd frontend
 npm install
 npm run dev
-
----
+```
 
 🗄️ Database
 MongoDB stores historical pNode snapshots and endpoint health metrics.
