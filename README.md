@@ -125,6 +125,10 @@ Historical snapshots display in table + line chart
 
 Endpoint health scoring visible in backend logs and MongoDB
 
+Historical snapshots display in table + line chart
+> **Note:** The line chart updates when the page is refreshed. Live tables continue to auto-refresh every 15 seconds.
+
+
 ⚡ Optional Enhancements
 Historical filtering by status (online/offline) and pagination cursor
 
